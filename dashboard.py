@@ -4,42 +4,40 @@ import pandas as pd
 import plotly.graph_objs as go
 import datetime
 import os
-print("Dossier actuel :", os.getcwd())
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "exchange_rates.csv") 
+
+now = datetime.datetime.now()
+ajd = now.date()
+hier = ajd - datetime.timedelta(days=1)
 
 ### PARTIE TRAITEMENT DE DONNEES
 
 # Charger les données
 df = pd.read_csv(CSV_PATH, names=["Timestamp", "Rate"], parse_dates=["Timestamp"])
 
-derniere_val = df["Rate"].iloc[-1] # on recupere la derniere valeure
+derniere_val = df["Rate"].iloc[-1] # on recupere la derniere valeure pour afficher la derniere valeur recupérée
 
-# Vérifier que le dataframe a au moins 2 valeurs avant de comparer
-if len(df) > 1 and df["Rate"].iloc[-1] > df["Rate"].iloc[-2]:
-    graph_color = "red"  
+if now.hour < 20:
+    derniere_date = hier # on prend les données d'hier pour le rapport si il est avant 20h
 else:
-    graph_color = "green"  
+    derniere_date = ajd # a partir de 20h on prend celles d'ajd
 
 
-latest_date = (df["Timestamp"].max()).date()
-
-# Filter data for the latest full trading day
-daily_df = df[df["Timestamp"].dt.date == latest_date]
-
-if not daily_df.empty:
+df_du_dernier_jour = df[(df["Timestamp"].dt.date == derniere_date) & (df["Timestamp"].dt.hour < 20)] # et ici on récupere toutes les données de cette derniere date (sur toute la journée)
+# dt.date sert converti end ate sans heure
+print(df_du_dernier_jour)
+if not df_du_dernier_jour.empty: # si le fichier n'est pas vide
     # Compute daily report metrics
-    open_price = daily_df["Rate"].iloc[0]
-    close_price = daily_df["Rate"].iloc[-1]
-    high_price = daily_df["Rate"].max()
-    low_price = daily_df["Rate"].min()
-    daily_volatility = ((high_price - low_price) / open_price) * 100
+    open_price = df_du_dernier_jour["Rate"].iloc[0] # on prend le prix d'ouverture (prmeier prix du jour)
+    close_price = df_du_dernier_jour["Rate"].iloc[-1] # et le dernier prix du jour
+    daily_volatility = df_du_dernier_jour["Rate"].std()
     daily_evolution = ((close_price - open_price) / open_price) * 100
 else:
-    open_price = close_price = high_price = low_price = daily_volatility = daily_evolution = None
+    open_price = close_price  = daily_volatility = daily_evolution = None
 
-report_date = latest_date.strftime("%Y-%m-%d")
+date_dernier_jour_joli = derniere_date.strftime("%Y-%m-%d")
 
 ### PARTIE DASHBOARD 
 
@@ -74,15 +72,7 @@ app.layout = html.Div( # Dash apps are composed of two parts. The first part is 
             })
         ]),
 
-
-    html.Div(id="live-update-price", style={
-            "fontSize": "50px",
-            "fontWeight": "bold",
-            "color": "#00FF00",  # Vert si positif
-            "marginTop": "20px",
-        }),
-
-    html.P("ici on vous affiche l'évolution du taux de change pris toutes les 5min:", style={"marginTop": "20px", "color": "white"}),
+    html.P("ici on vous affiche le graphe de l'évolution du taux de change pris toutes les 5min:", style={"marginTop": "20px", "color": "white","fontSize": "20px"}),
     dcc.Graph(
         id='graph',
         figure={
@@ -94,15 +84,13 @@ app.layout = html.Div( # Dash apps are composed of two parts. The first part is 
     ),
 
 
-    html.H2(f"Daily Report - {report_date}", style={"marginTop": "20px", "textDecoration": "underline"}),
+    html.H2(f"Rapport journalier - {date_dernier_jour_joli}", style={"marginTop": "20px", "textDecoration": "underline"}),
 
         html.Div([
-            html.P(f" Open Price: {open_price:.4f} EUR/USD" if open_price else "📌 Open Price: Data not available"),
-            html.P(f" Close Price: {close_price:.4f} EUR/USD" if close_price else "📌 Close Price: Data not available"),
-            html.P(f" High Price: {high_price:.4f} EUR/USD" if high_price else "📌 High Price: Data not available"),
-            html.P(f" Low Price: {low_price:.4f} EUR/USD" if low_price else "📌 Low Price: Data not available"),
-            html.P(f" Daily Volatility: {daily_volatility:.2f}%" if daily_volatility else "📊 Daily Volatility: Data not available"),
-            html.P(f" Daily Evolution: {daily_evolution:.2f}%" if daily_evolution else "📈 Daily Evolution: Data not available"),
+            html.P(f" Open Price: {open_price:.4f} EUR/USD" ),
+            html.P(f" Close Price: {close_price:.4f} EUR/USD" ),
+            html.P(f" Daily Volatility: {daily_volatility:.2f}%"),
+            html.P(f" Daily Evolution: {daily_evolution:.2f}%"),
         ], style={
             "border": "2px solid white",
             "padding": "15px",

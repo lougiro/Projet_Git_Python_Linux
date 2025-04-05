@@ -1,22 +1,16 @@
 #!/bin/bash
 
-# Définir le dossier où enregistrer le fichier CSV (GitHub)
-GIT_DIR="$HOME/OneDrive/Bureau/ESILV/A4/S8/Python/Projet_Git_Python_Linux"
+# defini le dossier ou on va enregistrer le csv
+GIT_DIR = "/home/ubuntu/Projet_Git_Python_Linux"
 
-# Vérifier si le dossier GitHub existe
-if [ ! -d "$GIT_DIR" ]; then
-    echo "Erreur : Le dossier GitHub n'existe pas ! Vérifiez le chemin."
-    exit 1
-fi
+# fichier csv avec toutes les données
+OUTPUT_FILE = "$GIT_DIR/exchange_rates.csv"
 
-# Définir le fichier CSV dans le dossier GitHub
-OUTPUT_FILE="$GIT_DIR/exchange_rates.csv"
+#^page à scraper
+URL = "https://www.investing.com/currencies/eur-usd"
 
-# URL de la page à scraper
-URL="https://www.investing.com/currencies/eur-usd"
-
-# Scraping du taux de change
-RATE=$(curl -s "$URL" | grep -oP '(?<=data-test="instrument-price-last">)[0-9]+\.[0-9]+')
+# taux de change ave ccurl et grep
+RATE = $(curl -s "$URL" | grep -oP '(?<=data-test="instrument-price-last">)[0-9]+\.[0-9]+')
 
 # Vérifier si une valeur a été récupérée
 if [[ -n "$RATE" ]]; then
